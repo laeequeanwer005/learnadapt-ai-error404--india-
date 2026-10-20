@@ -1,7 +1,5 @@
 # Authentic Streamlit screenshots (not yet supplied)
 
-Only add **real captures from the running Streamlit application**, after installing dependencies and opening the app. Do not publish visual mockups or the separate HTML marketing site as evidence that the Python dashboard works.
-
 Suggested filenames:
 
 - `dashboard.png` — dashboard, metrics and synthetic-data banner.
@@ -12,4 +10,3 @@ Suggested filenames:
 - `practice-update.png` — completed practice form and reflected update.
 - `model-evaluation.png` — *only after* actual synthetic holdout evaluation has been displayed.
 
-Remove/blur usernames, ID fields or sensitive browser details. Keep visible the **SYNTHETIC DEMO DATA** disclosure whenever screenshots show generated records. These image files do not exist yet; the team must capture and commit them after local verification.
