@@ -67,6 +67,23 @@ div[data-testid="stVerticalBlockBorderWrapper"]:has(>div>div[data-testid="stVert
 [data-testid="stAlert"] {border-radius:12px;}
 small {color:#50647B;}
 @media(max-width:640px){.hero-card {padding:20px 18px;border-radius:16px;}.block-container {padding-top:1rem;}}
+
+
+[data-testid="stSidebar"] button {
+    height: auto !important;
+    min-height: 44px;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.4 !important;
+    padding: 0.65rem 0.8rem !important;
+}
+
+[data-testid="stSidebar"] button p {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.4 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -187,7 +204,7 @@ def accuracy_chart(skills: pd.DataFrame) -> None:
         font=dict(family="Arial", color="#1F3656"), plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption("Observed performance: correct responses / attempts; not a validated mastery measurement.")
 
 
@@ -233,7 +250,7 @@ def practice_table(history: pd.DataFrame, *, count: int | None = None) -> None:
         "attempts": "Attempts", "correct_attempts": "Correct", "score": "Correct (%)",
         "duration_minutes": "Minutes",
     })
-    st.dataframe(table, use_container_width=True, hide_index=True)
+    st.dataframe(table, width="stretch", hide_index=True)
 
 
 def dashboard(history: pd.DataFrame, source: str, model_bundle: dict | None, model_status: str) -> None:
@@ -272,7 +289,7 @@ def progress_page(history: pd.DataFrame) -> None:
     }).copy()
     table["Overall correct"] = (table["Overall correct"] * 100).round(1)
     table["Recent correct"] = (table["Recent correct"] * 100).round(1)
-    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.dataframe(table, hide_index=True, width="stretch")
     chosen_skill = st.selectbox("View historical performance for skill", sorted(history["skill"].unique()))
     subset = history.loc[history["skill"] == chosen_skill].sort_values("timestamp").copy()
     subset["Correct (%)"] = subset["score"] * 100
@@ -283,7 +300,7 @@ def progress_page(history: pd.DataFrame) -> None:
             height=305, yaxis_range=[0, 105], xaxis_title="Practice date (UTC)",
             yaxis_title="Correct responses (%)", margin=dict(l=12, r=12, t=18, b=0),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("At least two sessions for this skill are needed to show a historical trend.")
     st.caption("A changing percentage is a descriptive observation, not a verified improvement or causal effect.")
@@ -347,7 +364,7 @@ def update_page(learner_id: str, context: str) -> None:
         save_to_db = False
         if LOCAL_SQLITE_ENABLED:
             save_to_db = st.checkbox("Also save this record in LOCAL SQLite (not permanent in hosted cloud)", value=False)
-        submit = st.form_submit_button("Record completed practice", type="primary", use_container_width=True)
+        submit = st.form_submit_button("Record completed practice", type="primary", width="stretch")
     if not submit:
         return
     row = {
@@ -426,23 +443,56 @@ def main() -> None:
         "Explore", ["Dashboard", "Skill Progress", "Practice History", "Next Learning Activity", "Practice Update"],
     )
     st.sidebar.divider()
+    
     if source_type == "synthetic":
-        if st.sidebar.button("Train synthetic model in this session", use_container_width=True):
+        if st.sidebar.button(
+            "Train synthetic model in this session",
+            key="train_synthetic_model",
+            width="stretch",
+        ):
             try:
-                with st.spinner("Training a classifier and evaluating on held-out fictional learners..."):
-                    bundle, report = train_and_evaluate(base, source_type="synthetic", seed=42)
-                st.session_state["synthetic_model_bundle"] = bundle
-                st.session_state["synthetic_model_report"] = report
-                st.sidebar.success("Synthetic model trained and evaluated.")
+                with st.spinner(
+                    "Training a classifier and evaluating on held-out fictional learners..."
+                ):
+                    bundle, report = train_and_evaluate(
+                        base,
+                        source_type="synthetic",
+                        seed=42,
+                    )
+                    st.session_state["synthetic_model_bundle"] = bundle
+                    st.session_state["synthetic_model_report"] = report
+
+                st.sidebar.success(
+                    "Synthetic model trained and evaluated."
+                )
+
             except (ModelError, DataValidationError, ValueError) as exc:
                 st.sidebar.error(f"Training unavailable: {exc}")
+
         if "synthetic_model_report" in st.session_state:
-            with st.sidebar.expander("Calculated demo evaluation"):
+            with st.sidebar.expander("Calculated demo evaluation", expanded=False):
                 report = st.session_state["synthetic_model_report"]
-                st.write("Held-out learners:", report["test_learners"])
-                st.write("Model accuracy:", f"{report['model']['accuracy']:.1%}")
-                st.write("Baseline accuracy:", f"{report['majority_prior_baseline']['accuracy']:.1%}")
-                st.caption("Synthetic-only; not validated on students.")
+
+                st.markdown("**Held-out learners**")
+                st.write(report.get("test_learners", "Not available"))
+
+                model_metrics = report.get("model", {})
+                st.markdown("**Synthetic model metrics**")
+
+                for metric_name in ("accuracy", "precision", "recall", "f1", "roc_auc"):
+                    metric_value = model_metrics.get(metric_name)
+
+                    if isinstance(metric_value, (int, float)):
+                        st.write(f"{metric_name.replace('_', ' ').title()}: {metric_value:.1%}")
+                    else:
+                        st.write(f"{metric_name.replace('_', ' ').title()}: Not available")
+
+                st.caption(
+                    "Results use fictional synthetic data and do not establish "
+                    "performance on real students."
+                )
+
+
     model_bundle, model_status = _load_current_model(source_type, dataset_fingerprint(base))
     st.sidebar.caption(model_status)
     st.sidebar.caption("Privacy: CSV uploads are processed in the running app server's memory. Never upload identifiable student data to a public demo.")
