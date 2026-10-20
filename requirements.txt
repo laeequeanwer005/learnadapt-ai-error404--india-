@@ -1,7 +1,8 @@
-streamlit>=1.35,<2.0
-pandas>=2.0,<3.0
-streamlit
-pandas
-plotly
-scikit-learn
-numpy
+# Python 3.11 recommended. Compatible stable ranges for Community Cloud.
+streamlit>=1.38,<2.0
+pandas>=2.2,<3.0
+numpy>=1.26,<3.0
+scikit-learn>=1.5,<2.0
+plotly>=5.24,<7.0
+joblib>=1.4,<2.0
+pytest>=8.0,<10.0
